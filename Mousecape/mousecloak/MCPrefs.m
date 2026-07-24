@@ -26,6 +26,5 @@ id MCDefault(NSString *key) {
 
 void MCSetDefaultFor(id value, NSString *key, NSString *user, NSString *host) {
     CFPreferencesSetValue((CFStringRef)key, (CFPropertyListRef)value, (CFStringRef)kMCDomain, (CFStringRef)user, (CFStringRef)host);
-    //    CFPreferencesSynchronize((CFStringRef)kMCDomain, (CFStringRef)user, (CFStringRef)host);
+    CFPreferencesSynchronize((CFStringRef)kMCDomain, (CFStringRef)user, (CFStringRef)host);
 }
-

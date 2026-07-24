@@ -7,6 +7,7 @@
 //
 
 #import "MCGeneralPreferencesController.h"
+#import "MCPrefs.h"
 #import "scale.h"
 
 @interface MCGeneralPreferencesController ()
@@ -36,7 +37,7 @@
 - (void)setCursorScale:(float)cursorScale {
     [self willChangeValueForKey:@"cursorScale"];
     setCursorScale(cursorScale);
-    [[NSUserDefaults standardUserDefaults] setFloat:cursorScale forKey:MCPreferencesCursorScaleKey];
+    MCSetDefault(@(cursorScale), MCPreferencesCursorScaleKey);
     [self didChangeValueForKey:@"cursorScale"];
 }
 
