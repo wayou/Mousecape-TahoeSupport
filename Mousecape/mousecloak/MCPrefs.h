@@ -20,6 +20,7 @@ extern NSString *MCSuppressDeleteLibraryConfirmationKey;
 extern NSString *MCSuppressDeleteCursorConfirmationKey;
 extern id MCDefaultFor(NSString *key, NSString *user, NSString *host);
 extern id MCDefault(NSString *key);
+extern void MCSetAppDefault(id value, NSString *key);
 #define MCFlag(key) [MCDefault(key) boolValue]
 
 extern void MCSetDefaultFor(id value, NSString *key, NSString *user, NSString *host);

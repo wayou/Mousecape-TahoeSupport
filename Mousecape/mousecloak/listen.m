@@ -14,6 +14,10 @@
 #import <Cocoa/Cocoa.h>
 #import "scale.h"
 
+static void applySavedCursorScale(void) {
+    setCursorScale(defaultCursorScale());
+}
+
 NSString *appliedCapePathForUser(NSString *user) {
     NSString *home = NSHomeDirectoryForUser(user);
     NSString *ident =     MCDefaultFor(@"MCAppliedCursor", user, (NSString *)kCFPreferencesCurrentHost);
@@ -36,7 +40,7 @@ static void UserSpaceChanged(SCDynamicStoreRef	store, CFArrayRef changedKeys, vo
         MMLog(BOLD RED "Application of cape failed" RESET);
     }
     
-    setCursorScale(defaultCursorScale());
+    applySavedCursorScale();
     
     CFRelease(currentConsoleUser);
 }
@@ -46,10 +50,7 @@ void reconfigurationCallback(CGDirectDisplayID display,
     	void *userInfo) {
     MMLog("Reconfigure user space");
     applyCapeAtPath(appliedCapePathForUser(NSUserName()));
-    float scale;
-    CGSGetCursorScale(CGSMainConnectionID(), &scale);
-    CGSSetCursorScale(CGSMainConnectionID(), scale + .3);
-    CGSSetCursorScale(CGSMainConnectionID(), scale);
+    applySavedCursorScale();
 }
 
 
@@ -76,7 +77,17 @@ void listener(void) {
     
     // Apply the cape for the user on load
     applyCapeAtPath(appliedCapePathForUser(NSUserName()));
-    setCursorScale(defaultCursorScale());
+    applySavedCursorScale();
+
+    // WindowServer may restore its own cursor scale after login items launch.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        applySavedCursorScale();
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        applySavedCursorScale();
+    });
     
     CFRunLoopAddSource(CFRunLoopGetCurrent(), rls, kCFRunLoopDefaultMode);
     CFRunLoopRun();

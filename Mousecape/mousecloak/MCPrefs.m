@@ -24,6 +24,11 @@ id MCDefault(NSString *key) {
     return [(id)CFPreferencesCopyAppValue((CFStringRef)key, (CFStringRef)kMCDomain) autorelease];
 }
 
+void MCSetAppDefault(id value, NSString *key) {
+    CFPreferencesSetAppValue((CFStringRef)key, (CFPropertyListRef)value, (CFStringRef)kMCDomain);
+    CFPreferencesAppSynchronize((CFStringRef)kMCDomain);
+}
+
 void MCSetDefaultFor(id value, NSString *key, NSString *user, NSString *host) {
     CFPreferencesSetValue((CFStringRef)key, (CFPropertyListRef)value, (CFStringRef)kMCDomain, (CFStringRef)user, (CFStringRef)host);
     CFPreferencesSynchronize((CFStringRef)kMCDomain, (CFStringRef)user, (CFStringRef)host);

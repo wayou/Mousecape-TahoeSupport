@@ -753,6 +753,7 @@
 				FAE5D57D1952734F007620DE /* Copy Tool */,
 				FAE5D57F1952737F007620DE /* Copy Helper */,
 				FA901D022C437ADD006983AA /* Embed Frameworks */,
+				1A7B2C3D4E5F60718293A4B5 /* Embed Git Commit */,
 			);
 			buildRules = (
 			);
@@ -962,6 +963,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		1A7B2C3D4E5F60718293A4B5 /* Embed Git Commit */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Embed Git Commit";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "gitCommit=$(/usr/bin/git -C \"$SRCROOT/..\" rev-parse --short=7 HEAD 2>/dev/null)\nif [ -n \"$gitCommit\" ]; then\n    if ! /usr/bin/git -C \"$SRCROOT/..\" diff --quiet HEAD --; then\n        gitCommit=\"$gitCommit-dirty\"\n    fi\n    /usr/libexec/PlistBuddy -c \"Add :MCGitCommit string $gitCommit\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\" 2>/dev/null || \\\n        /usr/libexec/PlistBuddy -c \"Set :MCGitCommit $gitCommit\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\nfi\n";
+		};
 		FA359841189DAAF900288163 /* Build Number */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;

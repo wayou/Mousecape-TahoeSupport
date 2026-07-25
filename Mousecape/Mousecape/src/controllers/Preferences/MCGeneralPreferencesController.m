@@ -37,7 +37,7 @@
 - (void)setCursorScale:(float)cursorScale {
     [self willChangeValueForKey:@"cursorScale"];
     setCursorScale(cursorScale);
-    MCSetDefault(@(cursorScale), MCPreferencesCursorScaleKey);
+    MCSetAppDefault(@(cursorScale), MCPreferencesCursorScaleKey);
     [self didChangeValueForKey:@"cursorScale"];
 }
 
@@ -53,7 +53,9 @@
 }
 
 - (NSString *)toolbarItemLabel {
-    return NSLocalizedString(@"General", @"Toolbar item name for the General preference pane");
+    NSString *label = NSLocalizedString(@"General", @"Toolbar item name for the General preference pane");
+    NSString *gitCommit = [NSBundle.mainBundle objectForInfoDictionaryKey:@"MCGitCommit"];
+    return gitCommit.length > 0 ? [NSString stringWithFormat:@"%@ (%@)", label, gitCommit] : label;
 }
 
 @end

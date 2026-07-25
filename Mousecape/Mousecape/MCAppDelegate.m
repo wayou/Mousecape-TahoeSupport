@@ -157,4 +157,15 @@
     [self.preferencesWindowController showWindow:sender];
 }
 
+- (IBAction)showAboutPanel:(id)sender {
+    NSDictionary *info = NSBundle.mainBundle.infoDictionary;
+    NSString *build = info[@"CFBundleVersion"];
+    NSString *gitCommit = info[@"MCGitCommit"];
+    NSString *displayBuild = gitCommit.length > 0 ? gitCommit : build;
+
+    [NSApp orderFrontStandardAboutPanelWithOptions:@{
+        NSAboutPanelOptionVersion: displayBuild
+    }];
+}
+
 @end
