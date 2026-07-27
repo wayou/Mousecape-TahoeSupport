@@ -18,6 +18,20 @@ static void applySavedCursorScale(void) {
     setCursorScale(defaultCursorScale());
 }
 
+// WindowServer resets the cursor scale on wake, so re-apply immediately and
+// again after short delays to win against its own restore.
+static void applySavedCursorScaleWithRetries(void) {
+    applySavedCursorScale();
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        applySavedCursorScale();
+    });
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        applySavedCursorScale();
+    });
+}
+
 NSString *appliedCapePathForUser(NSString *user) {
     NSString *home = NSHomeDirectoryForUser(user);
     NSString *ident =     MCDefaultFor(@"MCAppliedCursor", user, (NSString *)kCFPreferencesCurrentHost);
@@ -70,24 +84,26 @@ void listener(void) {
     NSApplicationLoad();
     CGDisplayRegisterReconfigurationCallback(reconfigurationCallback, NULL);
     MMLog(BOLD CYAN "Listening for Display changes" RESET);
+
+    // WindowServer restores its own cursor scale on wake from sleep, so
+    // re-apply the saved scale whenever the machine wakes.
+    [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceDidWakeNotification
+                                                                    object:nil
+                                                                     queue:nil
+                                                                usingBlock:^(NSNotification *note) {
+        MMLog(BOLD CYAN "Woke from sleep, re-applying cursor scale" RESET);
+        applySavedCursorScaleWithRetries();
+    }];
+    MMLog(BOLD CYAN "Listening for Wake events" RESET);
     
     CFRunLoopSourceRef rls = SCDynamicStoreCreateRunLoopSource(NULL, store, 0);
     assert(rls != NULL);
     MMLog(BOLD CYAN "Listening for User changes" RESET);
     
-    // Apply the cape for the user on load
+    // Apply the cape for the user on load. WindowServer may restore its own
+    // cursor scale after login items launch, so retry a couple of times.
     applyCapeAtPath(appliedCapePathForUser(NSUserName()));
-    applySavedCursorScale();
-
-    // WindowServer may restore its own cursor scale after login items launch.
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)),
-                   dispatch_get_main_queue(), ^{
-        applySavedCursorScale();
-    });
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)),
-                   dispatch_get_main_queue(), ^{
-        applySavedCursorScale();
-    });
+    applySavedCursorScaleWithRetries();
     
     CFRunLoopAddSource(CFRunLoopGetCurrent(), rls, kCFRunLoopDefaultMode);
     CFRunLoopRun();
