@@ -18,7 +18,7 @@ float cursorScale() {
 float defaultCursorScale() {
     float scale = [MCDefault(MCPreferencesCursorScaleKey) floatValue];
     if (scale < .5 || scale > 16)
-        scale = 1;
+        scale = .5;
     return scale;
 }
 
