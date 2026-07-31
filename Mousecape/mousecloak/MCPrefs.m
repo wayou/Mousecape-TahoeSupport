@@ -11,6 +11,7 @@
 NSString *MCPreferencesAppliedCursorKey          = @"MCAppliedCursor";
 NSString *MCPreferencesAppliedClickActionKey     = @"MCLibraryClickAction";
 NSString *MCPreferencesCursorScaleKey            = @"MCCursorScale";
+NSString *MCPreferencesHelperEnabledKey          = @"MCHelperEnabled";
 NSString *MCPreferencesDoubleActionKey           = @"MCDoubleAction";
 NSString *MCPreferencesHandednessKey             = @"MCHandedness";
 NSString *MCSuppressDeleteLibraryConfirmationKey = @"MCSuppressDeleteLibraryConfirmationKey";

@@ -31,13 +31,13 @@
 
 #pragma mark - Accessors
 - (float)cursorScale {
-    return cursorScale();
+    return defaultCursorScale();
 }
 
 - (void)setCursorScale:(float)cursorScale {
     [self willChangeValueForKey:@"cursorScale"];
-    setCursorScale(cursorScale);
     MCSetAppDefault(@(cursorScale), MCPreferencesCursorScaleKey);
+    setCursorScale(cursorScale);
     [self didChangeValueForKey:@"cursorScale"];
 }
 

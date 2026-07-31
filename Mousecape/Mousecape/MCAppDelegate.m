@@ -13,12 +13,17 @@
 #import "create.h"
 #import "MASPreferencesWindowController.h"
 #import "MCGeneralPreferencesController.h"
+#import "scale.h"
+
+static NSString * const MCHelperIdentifier = @"com.alexzielenski.mousecloakhelper";
 
 @interface MCAppDelegate () {
     MASPreferencesWindowController *_preferencesWindowController;
 }
 @property (readonly) MASPreferencesWindowController *preferencesWindowController;
 - (void)configureHelperToolMenuItem;
+- (void)ensureHelperToolEnabled;
+- (void)showHelperApprovalPrompt;
 @end
 
 @implementation MCAppDelegate
@@ -30,6 +35,7 @@
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
+    [self ensureHelperToolEnabled];
     [self configureHelperToolMenuItem];
     [self.libraryWindowController showWindow:self];
     
@@ -37,6 +43,8 @@
     if (self.libraryWindowController.libraryViewController.libraryController.appliedCape != NULL) {
         [self.libraryWindowController.libraryViewController.libraryController applyCape:self.libraryWindowController.libraryViewController.libraryController.appliedCape];
     }
+
+    setCursorScale(defaultCursorScale());
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
@@ -53,29 +61,81 @@
 }
 
 - (void)configureHelperToolMenuItem {
-    CFDictionaryRef dict = SMJobCopyDictionary(kSMDomainUserLaunchd, CFSTR("com.alexzielenski.mousecloakhelper"));
-    
-    [self.toggleHelperItem setTag: dict ? 1 : 0];
-    [self.toggleHelperItem setTitle:self.toggleHelperItem.tag ?
+    SMAppService *service = [SMAppService loginItemServiceWithIdentifier:MCHelperIdentifier];
+    BOOL registered = service.status == SMAppServiceStatusEnabled ||
+                      service.status == SMAppServiceStatusRequiresApproval;
+
+    [self.toggleHelperItem setTag:registered ? 1 : 0];
+    [self.toggleHelperItem setTitle:registered ?
                     NSLocalizedString(@"Uninstall Helper Tool", "Uninstall Helper Tool Menu Item") :
                     NSLocalizedString(@"Install Helper Tool", "Install Helper Tool Menu Item")];
-    
-    if (dict)
-        CFRelease(dict);
+}
+
+- (void)ensureHelperToolEnabled {
+    id savedPreference = MCDefault(MCPreferencesHelperEnabledKey);
+    BOOL helperEnabled = savedPreference == nil || [savedPreference boolValue];
+    if (!helperEnabled) {
+        return;
+    }
+
+    SMAppService *service = [SMAppService loginItemServiceWithIdentifier:MCHelperIdentifier];
+    if (service.status == SMAppServiceStatusEnabled) {
+        return;
+    }
+    if (service.status == SMAppServiceStatusRequiresApproval) {
+        [self showHelperApprovalPrompt];
+        return;
+    }
+
+    NSError *error = nil;
+    if (![service registerAndReturnError:&error]) {
+        if (service.status == SMAppServiceStatusRequiresApproval) {
+            [self showHelperApprovalPrompt];
+        } else {
+            NSAlert *alert = [[NSAlert alloc] init];
+            alert.messageText = NSLocalizedString(@"Mousecape Helper Could Not Be Enabled", nil);
+            alert.informativeText = error.localizedDescription ?: NSLocalizedString(@"The helper could not be registered.", nil);
+            [alert runModal];
+        }
+    } else if (service.status == SMAppServiceStatusRequiresApproval) {
+        [self showHelperApprovalPrompt];
+    }
+}
+
+- (void)showHelperApprovalPrompt {
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = NSLocalizedString(@"Allow Mousecape to Run in the Background", nil);
+    alert.informativeText = NSLocalizedString(@"Enable Mousecape in System Settings > General > Login Items so it can restore your cursor scale after login and wake.", nil);
+    [alert addButtonWithTitle:NSLocalizedString(@"Open Login Items", nil)];
+    [alert addButtonWithTitle:NSLocalizedString(@"Not Now", nil)];
+
+    if ([alert runModal] == NSAlertFirstButtonReturn) {
+        [SMAppService openSystemSettingsLoginItems];
+    }
 }
 
 - (IBAction)toggleInstall:(NSMenuItem *)sender {
-    BOOL success = NO;
-    
+    SMAppService *service = [SMAppService loginItemServiceWithIdentifier:MCHelperIdentifier];
+    NSError *error = nil;
+    BOOL success;
+
     if (self.toggleHelperItem.tag != 0) { // Uninstall
-        success = SMLoginItemSetEnabled(CFSTR("com.alexzielenski.mousecloakhelper"), false);
+        success = [service unregisterAndReturnError:&error];
+        if (success) {
+            MCSetAppDefault(@NO, MCPreferencesHelperEnabledKey);
+        }
     } else {
-        success = SMLoginItemSetEnabled(CFSTR("com.alexzielenski.mousecloakhelper"), true);
+        success = [service registerAndReturnError:&error];
+        if (success) {
+            MCSetAppDefault(@YES, MCPreferencesHelperEnabledKey);
+        }
     }
     
     // ServiceManagement.framework takes a while to actually register the job dictionary so if the return value is all good we
     // can be on our merry way
-    if (success && self.toggleHelperItem.tag == 0) {
+    if (success && service.status == SMAppServiceStatusRequiresApproval) {
+        [self showHelperApprovalPrompt];
+    } else if (success && self.toggleHelperItem.tag == 0) {
         // Successfully Installed
         [self.toggleHelperItem setTag: 1];
         [self.toggleHelperItem setTitle:NSLocalizedString(@"Uninstall Helper Tool", "Uninstall Helper Tool Menu Item")];
@@ -94,11 +154,18 @@
                         NSLocalizedString(@"Sweet", "Helper Tool Uninstall Result Gratitude 1"),
                         NSLocalizedString(@"Thanks", "Helper Tool Uninstall Result Gratitude 2"), nil);
     } else {
-        NSRunAlertPanel(NSLocalizedString(@"Failure", "Helper Tool Result Title Failure"),
-                        NSLocalizedString(@"The action did not complete successfully", "Helper Tool Result Useless Failure Description"),
-                        NSLocalizedString(@"Fuck", "Helper Tool Result Failure Expletive"), nil, nil);
+        NSString *message = error.localizedDescription ?: NSLocalizedString(@"The action did not complete successfully", "Helper Tool Result Useless Failure Description");
+        if (service.status == SMAppServiceStatusRequiresApproval) {
+            [self showHelperApprovalPrompt];
+        } else {
+            NSAlert *alert = [[NSAlert alloc] init];
+            alert.messageText = NSLocalizedString(@"Failure", "Helper Tool Result Title Failure");
+            alert.informativeText = message;
+            [alert runModal];
+        }
     }
-    
+
+    [self configureHelperToolMenuItem];
 }
 
 - (MASPreferencesWindowController *)preferencesWindowController {

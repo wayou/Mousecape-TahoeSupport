@@ -14,6 +14,7 @@
 extern NSString *MCPreferencesAppliedCursorKey;
 extern NSString *MCPreferencesAppliedClickActionKey;
 extern NSString *MCPreferencesCursorScaleKey;
+extern NSString *MCPreferencesHelperEnabledKey;
 extern NSString *MCPreferencesDoubleActionKey;
 extern NSString *MCPreferencesHandednessKey;
 extern NSString *MCSuppressDeleteLibraryConfirmationKey;

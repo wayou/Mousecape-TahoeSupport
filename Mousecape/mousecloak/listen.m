@@ -13,9 +13,22 @@
 #import "CGSCursor.h"
 #import <Cocoa/Cocoa.h>
 #import "scale.h"
+#import <math.h>
 
 static void applySavedCursorScale(void) {
     setCursorScale(defaultCursorScale());
+}
+
+static void repairSavedCursorScaleIfNeeded(void) {
+    float currentScale = 0;
+    float savedScale = defaultCursorScale();
+    CGError error = CGSGetCursorScale(CGSMainConnectionID(), &currentScale);
+
+    if (error != noErr || fabsf(currentScale - savedScale) > 0.001f) {
+        MMLog(BOLD CYAN "Cursor scale changed to %f; restoring %f" RESET,
+              currentScale, savedScale);
+        setCursorScale(savedScale);
+    }
 }
 
 // WindowServer resets the cursor scale on wake, so re-apply immediately and
@@ -104,6 +117,14 @@ void listener(void) {
     // cursor scale after login items launch, so retry a couple of times.
     applyCapeAtPath(appliedCapePathForUser(NSUserName()));
     applySavedCursorScaleWithRetries();
+
+    // WindowServer can also reset the scale without delivering one of the
+    // notifications above. Keep the saved preference authoritative.
+    [NSTimer scheduledTimerWithTimeInterval:10.0
+                                    repeats:YES
+                                      block:^(NSTimer *timer) {
+        repairSavedCursorScaleIfNeeded();
+    }];
     
     CFRunLoopAddSource(CFRunLoopGetCurrent(), rls, kCFRunLoopDefaultMode);
     CFRunLoopRun();
