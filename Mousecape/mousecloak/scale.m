@@ -16,6 +16,10 @@ float cursorScale() {
 }
 
 float defaultCursorScale() {
+    // The listener is long-lived while the app writes this preference, so drop any
+    // cached copy before reading or it keeps restoring a stale scale.
+    CFPreferencesAppSynchronize((CFStringRef)kMCDomain);
+
     float scale = [MCDefault(MCPreferencesCursorScaleKey) floatValue];
     if (scale < .5 || scale > 16)
         scale = .5;

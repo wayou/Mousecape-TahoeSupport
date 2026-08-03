@@ -119,8 +119,9 @@ void listener(void) {
     applySavedCursorScaleWithRetries();
 
     // WindowServer can also reset the scale without delivering one of the
-    // notifications above. Keep the saved preference authoritative.
-    [NSTimer scheduledTimerWithTimeInterval:10.0
+    // notifications above. Keep the saved preference authoritative. The interval
+    // bounds how long a wrong cursor size stays on screen, so keep it short.
+    [NSTimer scheduledTimerWithTimeInterval:2.0
                                     repeats:YES
                                       block:^(NSTimer *timer) {
         repairSavedCursorScaleIfNeeded();
